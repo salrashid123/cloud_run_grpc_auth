@@ -16,7 +16,7 @@ This article covers a simple client-server you can deploy on Cloud run that incl
 This article does not go into details about OpenID Connect tokens and how to use them with gRPC and GCP.  However, as background please see
 
 - [gRPC Authentication with Google OpenID Connect tokens](https://medium.com/google-cloud/grpc-authentication-with-google-openid-connect-tokens-812ceb3e5c41)
-  - [https://github.com/salrashid123/grpc_google_id_token](https://github.com/salrashid123/grpc_google_id_token)
+  - [https://github.com/salrashid123/grpc_google_id_tokens](https://github.com/salrashid123/grpc_google_id_tokens)
 - [Authenticating using Google OpenID Connect Tokens](https://medium.com/google-cloud/authenticating-using-google-openid-connect-tokens-e7675051213b)
 
 The links above shows how to acquire Google OIDC tokens that you can use for a variety of GCP services or even standalone. One thing noted that not all google cloud auth libraries provide interfaces to get OIDC tokens.  At the time of writing, only google-auth libraries for java and python are supported with nodejs pending and golang yet to be officially implemented.  Furthermore, most of those languages that do support acquiring OIDC token happen to also support automatic injection into gRPC calls. 
