@@ -67,7 +67,7 @@ I'm assuming you have Cloud Run setup and relatively above with gRPC and the aut
 
 #### Create Client SA
 
-    Now create the service account that will have access to invoke the Cloud Run service
+Now create the service account that will have access to invoke the Cloud Run service
 
 ```bash
     mkdir -p certs
@@ -91,9 +91,9 @@ gcloud beta run services set-iam-policy grpc iam_policy.json
 
 ## Build Client
 
-    At this point, the gRPC service is secure by default and would require an OIDC token with the correct `audience` field and IAM permissions to get through
+At this point, the gRPC service is secure by default and would require an OIDC token with the correct `audience` field and IAM permissions to get through
 
-    The audience filed for cloud run needs to be the fully qualified name with the protocol (custom domain aud fields is currently not supported)
+The audience filed for cloud run needs to be the fully qualified name with the protocol (custom domain aud fields is currently not supported)
 
 ```bash
     export AUDIENCE=`gcloud beta run services describe grpc --format="value(status.address.hostname)"`
@@ -101,8 +101,9 @@ gcloud beta run services set-iam-policy grpc iam_policy.json
 ```
 
     Build:
+
 ```
-    docker build -t gcr.io/$PROJECT_ID/grpc_run_client -f Dockerfile.client .
+docker build -t gcr.io/$PROJECT_ID/grpc_run_client -f Dockerfile.client .
 ```
 
 ## RUN gRPC Client
@@ -138,13 +139,18 @@ The second portion is 5 unary responses back from the GRPC service that displays
 2019/11/05 20:52:18 RPC Response: 4 message:"Hello unary RPC msg   from K_REVISION grpc-tnslx" 
 ```
 
-The final output is Server-side Streaming messages back (i.,e the server sends back two responses back on the single request)
+The final output is a buffered form Server-side Streaming messages back (i.,e the server sends back two responses back on the single request).
+At the time of writing `11/5/19`, server streaming is _not_ officially supported as its not true streaming but a buffered response anyway 
 
 ```
 2019/11/05 20:52:18 Stream Header: %!(EXTRA metadata.MD=map[alt-svc:[quic=":443"; ma=2592000; v="46,43",h3-Q049=":443"; ma=2592000,h3-Q048=":443"; ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443"; ma=2592000] content-type:[application/grpc] streamheaderkey:[val] x-cloud-trace-context:[7928b8ab5aa6b2dc759ca6ff7fa5bb4c] date:[Tue, 05 Nov 2019 20:52:19 GMT] server:[Google Frontend] content-length:[52]])
+
 2019/11/05 20:52:18 Message: %!(EXTRA string=Msg1 Stream RPC msg)
+
 2019/11/05 20:52:18 Stream Header: %!(EXTRA metadata.MD=map[date:[Tue, 05 Nov 2019 20:52:19 GMT] server:[Google Frontend] content-length:[52] alt-svc:[quic=":443"; ma=2592000; v="46,43",h3-Q049=":443"; ma=2592000,h3-Q048=":443"; ma=2592000,h3-Q046=":443"; ma=2592000,h3-Q043=":443"; ma=2592000] content-type:[application/grpc] streamheaderkey:[val] x-cloud-trace-context:[7928b8ab5aa6b2dc759ca6ff7fa5bb4c]])
+
 2019/11/05 20:52:18 Message: %!(EXTRA string=Msg2 Stream RPC msg)
+
 2019/11/05 20:52:18 Stream Trailer:  map[]
 ```
 
