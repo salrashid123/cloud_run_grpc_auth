@@ -71,6 +71,7 @@ Now create the service account that will have access to invoke the Cloud Run ser
 
 ```bash
     mkdir -p certs
+    cd certs
     gcloud iam service-accounts create grpc-client-account --display-name "gRPC Client Service Account"
     gcloud iam service-accounts keys create certs/grpc_client.json --iam-account=grpc-client-account@$PROJECT_ID.iam.gserviceaccount.com
 ```
@@ -108,7 +109,7 @@ docker build -t gcr.io/$PROJECT_ID/grpc_run_client -f Dockerfile.client .
 
 ## RUN gRPC Client
 
-Now run the grpc client and specify the serviceAccount json file that is mounted inside the container:
+Now run the grpc client and specify the serviceAccount json file that is mounted inside the container (note: you should cd to the root of this repo so that the path to `certs/` is mounted):
 
 ```
 docker run -v `pwd`/certs:/certs -t gcr.io/$PROJECT_ID/grpc_run_client --address $ADDRESS:443 --usetls=true  --servername $ADDRESS --audience $AUDIENCE --serviceAccount /certs/grpc_client.json
