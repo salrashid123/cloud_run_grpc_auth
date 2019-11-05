@@ -51,29 +51,29 @@ I'm assuming you have Cloud Run setup and relatively above with gRPC and the aut
 
 #### Setup Env Vars 
 
-    ```bash
+```bash
     export PROJECT_ID=`gcloud config get-value core/project`
     gcloud config set run/region us-central1
     gcloud config set run/platform managed
-    ```
+```
 
 #### Build and deploy gRPC Server Image
 
-    ```bash
+```bash
     docker build -t gcr.io/$PROJECT_ID/grpc_run_serve -f Dockerfile.server .
     docker push gcr.io/$PROJECT_ID/grpc_run_serve
     gcloud beta run deploy grpc --image gcr.io/$PROJECT_ID/grpc_run_serve
-    ```
+```
 
 #### Create Client SA
 
     Now create the service account that will have access to invoke the Cloud Run service
 
-    ```bash
+```bash
     mkdir -p certs
     gcloud iam service-accounts create grpc-client-account --display-name "gRPC Client Service Account"
     gcloud iam service-accounts keys create certs/grpc_client.json --iam-account=grpc-client-account@$PROJECT_ID.iam.gserviceaccount.com
-    ```
+```
 
 #### Set IAM Permission for `roles/run.invoker`:
 
@@ -95,15 +95,15 @@ gcloud beta run services set-iam-policy grpc iam_policy.json
 
     The audience filed for cloud run needs to be the fully qualified name with the protocol (custom domain aud fields is currently not supported)
 
-    ```bash
+```bash
     export AUDIENCE=`gcloud beta run services describe grpc --format="value(status.address.hostname)"`
     export ADDRESS=`echo $AUDIENCE |  awk -F[/:] '{print $4}'`
-    ```
+```
 
     Build:
-    ```
+```
     docker build -t gcr.io/$PROJECT_ID/grpc_run_client -f Dockerfile.client .
-    ```
+```
 
 ## RUN gRPC Client
 
@@ -173,8 +173,8 @@ enjoy grpc-ing!
 
 I added in a sample SSL certificate set into the images which are not used since Cloud Run automatically does SSL management for you.  However, if you wanted to run this over Self-Signed certs, [here is a setup to create your own CA](https://github.com/salrashid123/squid_proxy#generating-new-ca
 ) (note, you will need to edit `openssl.conf` here and specify the SNI settings (i.,e override value in 
-    ```
+```
     [alt_names]
     DNS.1 = grpc.domain.com
-    ```
+```
 
