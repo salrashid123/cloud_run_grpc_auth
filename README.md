@@ -101,7 +101,7 @@ The audience filed for cloud run needs to be the fully qualified name with the p
     export ADDRESS=`echo $AUDIENCE |  awk -F[/:] '{print $4}'`
 ```
 
-    Build:
+On the root folder of this repo, run:
 
 ```
 docker build -t gcr.io/$PROJECT_ID/grpc_run_client -f Dockerfile.client .
