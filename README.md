@@ -63,6 +63,8 @@ conn, err = grpc.Dial(*address,
 	grpc.WithPerRPCCredentials(rpcCreds))
 ```
 
+> For equivalent samples in other languages see [gRPC Authentication with Google OpenID Connect tokens](https://github.com/salrashid123/grpc_google_id_tokens).
+
 Anyway, lets go directly into the details
 
 
