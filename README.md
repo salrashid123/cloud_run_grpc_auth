@@ -3,7 +3,7 @@
 
 A couple months back I was happy to assist the [Cloud Run](https://cloud.google.com/run/) (managed) team in validating gRPC support on that platform.  The testing/validation covered writing a simple deployable gRPC client and server that also performed OpenIDConnect (OIDC) Authentication over gRPC (i.,e. Cloud Run Authentication).   In the course of developing that, i gained an understanding of how gRPC authentication headers are handled and manged directly with gRPC.   This article explains how to connect to a secure gRPC service running on Cloud Run using native gRPC library constructs.
 
-The articles cited in the Reference section that discuss gRPC on Cloud Run but these do not cover either authentication at all or do not specify authentication using gRPC-centric constructs with Google Cloud Auth client libraries.
+The links cited in the Reference section discusses gRPC on Cloud Run but these do not cover either authentication at all or do not specify authentication using gRPC-centric constructs with Google Cloud Auth client libraries.
 
 This article covers a simple client-server you can deploy on Cloud run that includes gRPC authentication _using google cloud credentials_ .   We specifically use `ServiceAccount Credentials` but the library cited below will work while running on GCE, GKE or even on Cloud RUn itself.
 
@@ -42,6 +42,26 @@ func (ts TokenSource) GetRequestMetadata(ctx context.Context, uri ...string) (ma
 func (ts TokenSource) RequireTransportSecurity() bool
 ```
 
+As an example of direct usage of an IDToken with grpc _native_ constructs like `grpc.WithPerRPCCredentials()`:
+
+```golang
+data, _ := ioutil.ReadFile(*serviceAccount)
+creds, _ := google.CredentialsFromJSON(ctx, data, scopes)
+
+idTokenSource, err := sal.IdTokenSource(
+	sal.IdTokenConfig{
+		Credentials: creds,
+		Audiences:   []string{*targetAudience},
+	},
+)
+
+rpcCreds, err := sal.NewIDTokenRPCCredential(ctx, idTokenSource)
+
+ce := credentials.NewTLS(&tlsCfg)
+conn, err = grpc.Dial(*address,
+	grpc.WithTransportCredentials(ce),
+	grpc.WithPerRPCCredentials(rpcCreds))
+```
 
 Anyway, lets go directly into the details
 
