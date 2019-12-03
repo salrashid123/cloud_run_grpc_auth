@@ -49,7 +49,7 @@ data, _ := ioutil.ReadFile(*serviceAccount)
 creds, _ := google.CredentialsFromJSON(ctx, data, scopes)
 
 idTokenSource, err := sal.IdTokenSource(
-	sal.IdTokenConfig{
+	&sal.IdTokenConfig{
 		Credentials: creds,
 		Audiences:   []string{*targetAudience},
 	},

@@ -45,7 +45,7 @@ func main() {
 		log.Fatal(err)
 	}
 	idTokenSource, err := sal.IdTokenSource(
-		sal.IdTokenConfig{
+		&sal.IdTokenConfig{
 			Credentials: creds,
 			Audiences:   []string{*targetAudience},
 		},
