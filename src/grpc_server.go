@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"net"
@@ -12,8 +13,8 @@ import (
 
 	"echo"
 
-	oidc "github.com/coreos/go-oidc"
-	sal "github.com/salrashid123/oauth2/google"
+	"google.golang.org/api/idtoken"
+	//sal "github.com/salrashid123/oauth2/google"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -59,13 +60,18 @@ func authUnaryInterceptor(
 
 }
 
-func verifyToken(ctx context.Context, token string, targetAudience string) (*oidc.IDToken, error) {
-	idt, err := sal.VerifyGoogleIDToken(ctx, token, targetAudience)
+func verifyToken(ctx context.Context, token string, targetAudience string) (sub string, err error) {
+
+	validTok, err := idtoken.Validate(ctx, token, targetAudience)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	log.Printf("Token Verified with Audience: %v  and Subject %v\n", idt.Audience, idt.Subject)
-	return idt, nil
+	if validTok.Audience != targetAudience {
+		return "", errors.New("Incorrect AUdience to verify IDTOken")
+	}
+
+	log.Printf("Token Verified with Audience")
+	return validTok.Subject, nil
 }
 
 func (s *server) SayHelloStream(in *echo.EchoRequest, stream echo.EchoServer_SayHelloStreamServer) error {

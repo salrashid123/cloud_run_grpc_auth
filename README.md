@@ -1,6 +1,8 @@
 
 # gRPC Authentication with Cloud Run
 
+>> Update `5/10/20`:  [google.golang.org/api/idtoken](https://pkg.go.dev/google.golang.org/api@v0.23.0/idtoken) now contains OIDC tokens support; use that instead of `github.com/salrashid123/oauth2/google`
+
 A couple months back I was happy to assist the [Cloud Run](https://cloud.google.com/run/) (managed) team in validating gRPC support on that platform.  The testing/validation covered writing a simple deployable gRPC client and server that also performed OpenIDConnect (OIDC) Authentication over gRPC (i.,e. Cloud Run Authentication).   In the course of developing that, i gained an understanding of how gRPC authentication headers are handled and manged directly with gRPC.   This article explains how to connect to a secure gRPC service running on Cloud Run using native gRPC library constructs.
 
 The links cited in the Reference section discusses gRPC on Cloud Run but these do not cover either authentication at all or do not specify authentication using gRPC-centric constructs with Google Cloud Auth client libraries.
@@ -23,9 +25,10 @@ The links above shows how to acquire Google OIDC tokens that you can use for a v
 
 For golang (as in the code in this article), it does not yet 1) support getting google OIDC tokens and 2) using those tokens in a library directly with gRPC.  This article provides an _unsupported_ implementation of both (from google's official perspective atleast):
 
+- ["google.golang.org/api/idtoken"](https://pkg.go.dev/google.golang.org/api@v0.23.0/idtoken)  << use this!
 - [https://github.com/salrashid123/oauth2#usage-idtoken](https://github.com/salrashid123/oauth2#usage-idtoken)
 
-The library set above for golang also implements a specific [TokenSource](https://godoc.org/golang.org/x/oauth2#TokenSource) that uses a source google identity to get its OIDC token as yet another standard TokenSource or Credentials.  For implementation details, see [IdTokenSource](https://github.com/salrashid123/oauth2/blob/master/google/idtoken.go#L46). 
+Both library sets above for golang also implements a specific [TokenSource](https://godoc.org/golang.org/x/oauth2#TokenSource) that uses a source google identity to get its OIDC token as yet another standard TokenSource or Credentials.  For implementation details, see [IdTokenSource](https://github.com/salrashid123/oauth2/blob/master/google/idtoken.go#L46). 
 
 Furthermore, that TokenSource also implements the interfaces that gRPC understands _natively_.   What that means is gRPC clients if given that tokens source will automatically acquire, use, referesh and manage the lifecycle of the OIDC token!
 
@@ -45,22 +48,27 @@ func (ts TokenSource) RequireTransportSecurity() bool
 As an example of direct usage of an IDToken with grpc _native_ constructs like `grpc.WithPerRPCCredentials()`:
 
 ```golang
-data, _ := ioutil.ReadFile(*serviceAccount)
-creds, _ := google.CredentialsFromJSON(ctx, data, scopes)
+import "google.golang.org/api/idtoken"
+...
+...
+	idTokenSource, err := idtoken.NewTokenSource(ctx, targetAudience, idtoken.WithCredentialsFile(serviceAccount))
+	if err != nil {
+		log.Fatalf("unable to create TokenSource: %v", err)
+	}
+	tok, err := idTokenSource.Token()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-idTokenSource, err := sal.IdTokenSource(
-	&sal.IdTokenConfig{
-		Credentials: creds,
-		Audiences:   []string{*targetAudience},
-	},
-)
-
-rpcCreds, err := sal.NewIDTokenRPCCredential(ctx, idTokenSource)
-
-ce := credentials.NewTLS(&tlsCfg)
-conn, err = grpc.Dial(*address,
-	grpc.WithTransportCredentials(ce),
-	grpc.WithPerRPCCredentials(rpcCreds))
+        ce := credentials.NewTLS(&tlsCfg)
+		conn, err = grpc.Dial(*address,
+			grpc.WithTransportCredentials(ce),
+			grpc.WithPerRPCCredentials(grpcTokenSource{
+				TokenSource: oauth.TokenSource{
+					idTokenSource,
+				},
+			}),
+		)
 ```
 
 > For equivalent samples in other languages see [gRPC Authentication with Google OpenID Connect tokens](https://github.com/salrashid123/grpc_google_id_tokens).
@@ -119,8 +127,10 @@ At this point, the gRPC service is secure by default and would require an OIDC t
 The audience filed for cloud run needs to be the fully qualified name with the protocol (custom domain aud fields is currently not supported)
 
 ```bash
-    export AUDIENCE=`gcloud beta run services describe grpc --format="value(status.address.hostname)"`
+    export AUDIENCE=`gcloud beta run services describe grpc2 --format="value(status.url)"`
     export ADDRESS=`echo $AUDIENCE |  awk -F[/:] '{print $4}'`
+    echo $AUDIENCE
+    echo $ADDRESS
 ```
 
 On the root folder of this repo, run:
