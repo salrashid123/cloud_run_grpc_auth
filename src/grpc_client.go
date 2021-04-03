@@ -21,13 +21,6 @@ import (
 
 const ()
 
-type grpcTokenSource struct {
-	oauth.TokenSource
-	// Additional metadata attached as headers.
-	quotaProject  string
-	requestReason string
-}
-
 var (
 	address        = flag.String("address", "localhost:8080", "host:port of gRPC server")
 	usetls         = flag.Bool("usetls", false, "startup using TLS")
@@ -77,11 +70,10 @@ func main() {
 		ce := credentials.NewTLS(&tlsCfg)
 		conn, err = grpc.Dial(*address,
 			grpc.WithTransportCredentials(ce),
-			grpc.WithPerRPCCredentials(grpcTokenSource{
-				TokenSource: oauth.TokenSource{
+			grpc.WithPerRPCCredentials(
+				oauth.TokenSource{
 					idTokenSource,
-				},
-			}),
+				}),
 		)
 		if err != nil {
 			log.Fatalf("did not connect: %v", err)

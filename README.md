@@ -30,7 +30,7 @@ For golang (as in the code in this article), it does not yet 1) support getting 
 
 Both library sets above for golang also implements a specific [TokenSource](https://godoc.org/golang.org/x/oauth2#TokenSource) that uses a source google identity to get its OIDC token as yet another standard TokenSource or Credentials.  For implementation details, see [IdTokenSource](https://github.com/salrashid123/oauth2/blob/master/google/idtoken.go#L46). 
 
-Furthermore, that TokenSource also implements the interfaces that gRPC understands _natively_.   What that means is gRPC clients if given that tokens source will automatically acquire, use, referesh and manage the lifecycle of the OIDC token!
+Furthermore, that `oauth.TokenSource{}` also implements the interfaces that gRPC understands _natively_.   What that means is gRPC clients if given that tokens source will automatically acquire, use, refresh and manage the lifecycle of the OIDC token!
 
 For details, the specific interface that does that for gRPC is:
 
@@ -60,14 +60,13 @@ import "google.golang.org/api/idtoken"
 		log.Fatal(err)
 	}
 
-        ce := credentials.NewTLS(&tlsCfg)
+    ce := credentials.NewTLS(&tlsCfg)
 		conn, err = grpc.Dial(*address,
 			grpc.WithTransportCredentials(ce),
-			grpc.WithPerRPCCredentials(grpcTokenSource{
-				TokenSource: oauth.TokenSource{
+			grpc.WithPerRPCCredentials(
+				oauth.TokenSource{
 					idTokenSource,
-				},
-			}),
+				}),
 		)
 ```
 
@@ -92,7 +91,7 @@ I'm assuming you have Cloud Run setup and relatively above with gRPC and the aut
 ```bash
     docker build -t gcr.io/$PROJECT_ID/grpc_run_serve -f Dockerfile.server .
     docker push gcr.io/$PROJECT_ID/grpc_run_serve
-    gcloud beta run deploy grpc --image gcr.io/$PROJECT_ID/grpc_run_serve
+    gcloud beta run deploy grpc --image gcr.io/$PROJECT_ID/grpc_run_serve --no-allow-unauthenticated
 ```
 
 #### Create Client SA
@@ -101,7 +100,6 @@ Now create the service account that will have access to invoke the Cloud Run ser
 
 ```bash
     mkdir -p certs
-    cd certs
     gcloud iam service-accounts create grpc-client-account --display-name "gRPC Client Service Account"
     gcloud iam service-accounts keys create certs/grpc_client.json --iam-account=grpc-client-account@$PROJECT_ID.iam.gserviceaccount.com
 ```
@@ -127,7 +125,7 @@ At this point, the gRPC service is secure by default and would require an OIDC t
 The audience filed for cloud run needs to be the fully qualified name with the protocol (custom domain aud fields is currently not supported)
 
 ```bash
-    export AUDIENCE=`gcloud beta run services describe grpc2 --format="value(status.url)"`
+    export AUDIENCE=`gcloud beta run services describe grpc --format="value(status.url)"`
     export ADDRESS=`echo $AUDIENCE |  awk -F[/:] '{print $4}'`
     echo $AUDIENCE
     echo $ADDRESS
@@ -145,6 +143,15 @@ Now run the grpc client and specify the serviceAccount json file that is mounted
 
 ```
 docker run -v `pwd`/certs:/certs -t gcr.io/$PROJECT_ID/grpc_run_client --address $ADDRESS:443 --usetls=true  --servername $ADDRESS --audience $AUDIENCE --serviceAccount /certs/grpc_client.json
+```
+
+or with go cli
+
+``bash
+go run src/grpc_client.go \
+  --address $ADDRESS:443 --usetls=true  \
+  --servername $ADDRESS --audience $AUDIENCE \
+  --serviceAccount certs/grpc_client.json
 ```
 
 The output of `grpc_run_client` will show the OIDC token sent to the cloud run instance which you can decode at [jwt.io](jwt.io).  Note the `aud:`, `email` and `iss` fields 
