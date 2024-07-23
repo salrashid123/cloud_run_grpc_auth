@@ -1,16 +1,11 @@
-FROM golang:1.14 as build
+FROM golang:1.21 as build
 
 RUN apt-get update -y && apt-get install -y build-essential wget unzip curl
 
-
-RUN curl -OL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip && \
-    unzip protoc-3.2.0-linux-x86_64.zip -d protoc3 && \
-    mv protoc3/bin/* /usr/local/bin/ && \
-    mv protoc3/include/* /usr/local/include/
+RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v27.2/protoc-27.2-linux-x86_64.zip &&     unzip protoc-27.2-linux-x86_64.zip -d protoc3 &&     mv protoc3/bin/* /usr/local/bin/ &&     mv protoc3/include/* /usr/local/include/
 
 
 ENV GO111MODULE=on
-RUN go get -u github.com/golang/protobuf/protoc-gen-go   
 
 WORKDIR /app
 
@@ -18,8 +13,10 @@ ADD . /app
 
 RUN go mod download
 
+RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.4.0 
+RUN go install github.com/golang/protobuf/protoc-gen-go@v1.5.4
 
-RUN /usr/local/bin/protoc -I src/ --include_imports --include_source_info --descriptor_set_out=src/echo/echo.proto.pb  --go_out=plugins=grpc:src/ src/echo/echo.proto
+RUN /usr/local/bin/protoc --go_out=. --go_opt=paths=source_relative --go-grpc_opt=require_unimplemented_servers=false --go-grpc_out=. --go-grpc_opt=paths=source_relative src/echo/echo.proto
 
 
 #RUN GRPC_HEALTH_PROBE_VERSION=v0.2.0 && \
@@ -29,7 +26,7 @@ RUN /usr/local/bin/protoc -I src/ --include_imports --include_source_info --desc
 RUN export GOBIN=/app/bin && go install src/grpc_server.go
 RUN export GOBIN=/app/bin && go install src/grpc_client.go
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/base-debian12
 COPY --from=build /app/server_crt.pem /
 COPY --from=build /app/server_key.pem /
 COPY --from=build /app/CA_crt.pem /

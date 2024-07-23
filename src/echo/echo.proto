@@ -1,8 +1,9 @@
 syntax = "proto3";
 
-option go_package = "./echo";
-
 package echo;
+
+option go_package = "github.com/salrashid123/cloud_run_grpc_auth/echo";
+
 
 service EchoServer {
   rpc SayHello (EchoRequest) returns (EchoReply) {}

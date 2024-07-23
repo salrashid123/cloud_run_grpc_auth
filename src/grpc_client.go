@@ -3,12 +3,13 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	pb "echo"
 	"flag"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"time"
+
+	pb "github.com/salrashid123/cloud_run_grpc_auth/echo"
 
 	//sal "github.com/salrashid123/oauth2/google"
 	"golang.org/x/net/context"
@@ -56,7 +57,7 @@ func main() {
 		var tlsCfg tls.Config
 		if len(*cacert) > 0 {
 			rootCAs := x509.NewCertPool()
-			pem, err := ioutil.ReadFile(*cacert)
+			pem, err := os.ReadFile(*cacert)
 			if err != nil {
 				log.Fatalf("failed to load root CA certificates  error=%v", err)
 			}
